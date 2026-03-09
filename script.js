@@ -764,14 +764,32 @@ document.getElementById('retry-ad-btn').addEventListener('click', () => {
     });
 });
 
-document.getElementById('share-btn').addEventListener('click', () => {
-    const text = `I reached Level ${currentLevelIndex + 1} in 'Are You Smarter Than The Internet'.Can you beat me ? `;
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
-            const btn = document.getElementById('share-btn');
-            btn.textContent = "Copied!";
+document.getElementById('share-btn').addEventListener('click', async () => {
+    const text = `🧠 I reached Level ${currentLevelIndex + 1} in "Are You Smarter Than The Internet?" Can you beat me?\n\n🔗 Play now: https://areyousmarterthaninternet.vercel.app`;
+    const btn = document.getElementById('share-btn');
+
+    // Use native share sheet on mobile (WhatsApp, Instagram, etc.)
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Are You Smarter Than The Internet?',
+                text: text,
+                url: 'https://areyousmarterthaninternet.vercel.app'
+            });
+            btn.textContent = "Shared! ✅";
             setTimeout(() => btn.textContent = "Share Score", 2000);
-        });
+        } catch (e) {
+            // User cancelled the share — that's fine
+            if (e.name !== 'AbortError') {
+                btn.textContent = "Share failed";
+                setTimeout(() => btn.textContent = "Share Score", 2000);
+            }
+        }
+    } else if (navigator.clipboard) {
+        // Fallback for desktop browsers
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Copied! 📋";
+        setTimeout(() => btn.textContent = "Share Score", 2000);
     } else {
         alert(text);
     }
