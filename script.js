@@ -17,7 +17,10 @@ const UI = {
     failIcon: document.getElementById('fail-icon'),
     currentFailLevel: document.getElementById('current-fail-level'),
     adTimer: document.getElementById('ad-timer'),
-    closeAdBtn: document.getElementById('close-ad-btn')
+    closeAdBtn: document.getElementById('close-ad-btn'),
+    welcomeBack: document.getElementById('welcome-back'),
+    totalAttempts: document.getElementById('total-attempts'),
+    lastPlayed: document.getElementById('last-played')
 };
 
 let currentLevelIndex = 0;
@@ -27,6 +30,61 @@ let timeLeft = 10;
 let isLevelActive = false;
 let normalRetryCount = localStorage.getItem('aystti_retries') ? parseInt(localStorage.getItem('aystti_retries')) : 0;
 let pendingAdAction = null;
+
+// ===== USER DATA PERSISTENCE =====
+function loadUserData() {
+    try {
+        const raw = localStorage.getItem('aystti_user');
+        if (raw) return JSON.parse(raw);
+    } catch (e) { /* corrupted data */ }
+    return { bestLevel: 1, totalAttempts: 0, lastPlayed: null, levelHistory: [] };
+}
+
+function saveUserData(data) {
+    localStorage.setItem('aystti_user', JSON.stringify(data));
+}
+
+function trackAttempt(reachedLevel) {
+    const data = loadUserData();
+    data.totalAttempts++;
+    data.lastPlayed = new Date().toISOString();
+    if (reachedLevel > data.bestLevel) data.bestLevel = reachedLevel;
+    data.levelHistory.push(reachedLevel);
+    if (data.levelHistory.length > 10) data.levelHistory = data.levelHistory.slice(-10);
+    saveUserData(data);
+}
+
+function formatLastPlayed(isoString) {
+    if (!isoString) return 'Never';
+    const d = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return diffMins + 'm ago';
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return diffHrs + 'h ago';
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffDays < 7) return diffDays + 'd ago';
+    return d.toLocaleDateString();
+}
+
+function showUserStats() {
+    const data = loadUserData();
+    // Sync best level from old system if needed
+    const oldBest = parseInt(localStorage.getItem('aystti_best') || 1);
+    if (oldBest > data.bestLevel) {
+        data.bestLevel = oldBest;
+        saveUserData(data);
+    }
+    UI.bestLevel.textContent = data.bestLevel;
+
+    if (data.totalAttempts > 0 && UI.welcomeBack) {
+        UI.welcomeBack.style.display = 'block';
+        if (UI.totalAttempts) UI.totalAttempts.textContent = data.totalAttempts;
+        if (UI.lastPlayed) UI.lastPlayed.textContent = formatLastPlayed(data.lastPlayed);
+    }
+}
 
 function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
@@ -94,6 +152,7 @@ function passLevel() {
     currentLevelIndex++;
     if (currentLevelIndex >= levels.length) {
         setBestLevel(currentLevelIndex + 1);
+        trackAttempt(currentLevelIndex + 1);
         showScreen('end');
         UI.failTitle.textContent = "You Win?!";
         UI.failTitle.style.color = "var(--success)";
@@ -128,6 +187,8 @@ function failLevel() {
     }
 
     UI.levelContainer.style.pointerEvents = 'none';
+
+    trackAttempt(currentLevelIndex + 1);
 
     setTimeout(() => {
         showScreen('end');
@@ -707,6 +768,271 @@ const levels = [
             container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
             container.querySelector('#finish-txt').onclick = () => passLevel();
         }
+    },
+    // ===== LEVEL 21: Color Swap Buttons =====
+    {
+        time: 10,
+        render: () => `
+            <div class="question">Tap the <span style="color:var(--success);font-weight:900;">GREEN</span> button</div>
+            <div class="options-grid" id="color-grid">
+                <button class="option-btn color-btn" data-idx="0" style="font-size:2rem;font-weight:900;">●</button>
+                <button class="option-btn color-btn" data-idx="1" style="font-size:2rem;font-weight:900;">●</button>
+                <button class="option-btn color-btn" data-idx="2" style="font-size:2rem;font-weight:900;">●</button>
+                <button class="option-btn color-btn" data-idx="3" style="font-size:2rem;font-weight:900;">●</button>
+            </div>
+        `,
+        init: (container) => {
+            const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
+            const btns = container.querySelectorAll('.color-btn');
+
+            function shuffleColors() {
+                for (let i = colors.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [colors[i], colors[j]] = [colors[j], colors[i]];
+                }
+                btns.forEach((btn, idx) => {
+                    btn.style.color = colors[idx];
+                    btn.dataset.color = colors[idx];
+                });
+            }
+
+            shuffleColors();
+            levels[currentLevelIndex]._timer = setInterval(() => {
+                if (isLevelActive) shuffleColors();
+            }, 600);
+
+            btns.forEach(btn => {
+                btn.onclick = () => {
+                    if (btn.dataset.color === '#10b981') passLevel();
+                    else failLevel();
+                };
+            });
+        },
+        cleanup: () => clearInterval(levels[currentLevelIndex]._timer)
+    },
+    // ===== LEVEL 22: Steel vs Feathers =====
+    {
+        time: 12,
+        render: () => `
+            <div class="question">Which is heavier: 1kg of steel or 1kg of feathers?</div>
+            <div class="options-grid">
+                <button class="option-btn troll-wrong">🔩 Steel</button>
+                <button class="option-btn troll-wrong">🪶 Feathers</button>
+                <button class="option-btn troll-wrong">Both are heavy</button>
+                <button class="option-btn troll-wrong">Neither</button>
+            </div>
+            <div id="equal-hint" style="font-size:0.75rem; color:var(--text-muted); opacity:0.25; text-align:center; margin-top:2rem; cursor:pointer; letter-spacing:0.5px;">They're both 1kg...</div>
+        `,
+        init: (container) => {
+            container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
+            container.querySelector('#equal-hint').onclick = () => passLevel();
+        }
+    },
+    // ===== LEVEL 23: Mirror Level =====
+    {
+        time: 12,
+        render: () => `
+            <div class="question" style="transform: scaleX(-1);">Tap the "Right" button</div>
+            <div class="options-grid" style="transform: scaleX(-1);">
+                <button class="option-btn troll-wrong">Up</button>
+                <button class="option-btn" id="correct-btn">Right</button>
+                <button class="option-btn troll-wrong">Left</button>
+                <button class="option-btn troll-wrong">Down</button>
+            </div>
+            <div style="text-align:center; margin-top:1.5rem; font-size:0.8rem; color:var(--text-muted); opacity:0.4; transform:scaleX(-1);">🪞 Everything is mirrored...</div>
+        `,
+        init: (container) => {
+            container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
+            container.querySelector('#correct-btn').onclick = () => passLevel();
+        }
+    },
+    // ===== LEVEL 24: Fleeing Answer (harder version of Level 1) =====
+    {
+        time: 12,
+        render: () => `
+            <div class="question">Solve: 5 + 3 = ?</div>
+            <div class="options-grid" style="position: relative; height: 300px; display: block;">
+                <button class="option-btn troll-wrong" style="display:inline-block; width: 45%; margin: 5px;">7</button>
+                <button class="option-btn troll-wrong" style="display:inline-block; width: 45%; margin: 5px;">53</button>
+                <button class="option-btn troll-wrong" style="display:inline-block; width: 45%; margin: 5px;">9</button>
+                <button id="correct-btn" class="option-btn" style="position: absolute; width: 45%; margin: 5px; z-index: 5;">8</button>
+            </div>
+        `,
+        init: (container) => {
+            container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
+            const correctBtn = container.querySelector('#correct-btn');
+            correctBtn.onclick = () => passLevel();
+
+            let x = 0, y = 0;
+            let vx = 5.5, vy = 4;
+
+            levels[currentLevelIndex]._animFrame = requestAnimationFrame(function animate() {
+                if (!isLevelActive) return;
+                const maxX = container.clientWidth - correctBtn.clientWidth - 10;
+                const maxY = 300 - correctBtn.clientHeight - 10;
+
+                x += vx; y += vy;
+                if (x <= 0 || x >= maxX) vx *= -1;
+                if (y <= 0 || y >= maxY) vy *= -1;
+                x = Math.max(0, Math.min(x, maxX));
+                y = Math.max(0, Math.min(y, maxY));
+
+                correctBtn.style.transform = `translate(${x}px, ${y}px)`;
+                levels[currentLevelIndex]._animFrame = requestAnimationFrame(animate);
+            });
+        },
+        cleanup: () => cancelAnimationFrame(levels[currentLevelIndex]._animFrame)
+    },
+    // ===== LEVEL 25: Don't Scroll Down =====
+    {
+        time: 12,
+        render: () => `
+            <div class="question">⚠️ Do NOT scroll down!</div>
+            <div id="scroll-trap" style="max-height:200px; overflow-y:auto; border:2px solid #e2e8f0; border-radius:16px; padding:1rem; margin-top:1rem;">
+                <div style="height:80px; display:flex; align-items:center; justify-content:center; color:var(--danger); font-weight:700;">DANGER ZONE BELOW</div>
+                <div style="height:80px; display:flex; align-items:center; justify-content:center; font-weight:700;">⬇️ Don't scroll ⬇️</div>
+                <div style="height:80px; display:flex; align-items:center; justify-content:center; color:var(--danger); font-weight:700;">SERIOUSLY STOP</div>
+                <div style="height:80px; display:flex; align-items:center; justify-content:center; font-weight:700;">🛑 LAST WARNING 🛑</div>
+                <div style="height:80px; display:flex; align-items:center; justify-content:center;">
+                    <button id="scroll-pass-btn" class="btn btn-primary" style="width:auto; padding:0.8rem 2rem; font-size:1rem;">You found me! 🎉</button>
+                </div>
+            </div>
+        `,
+        init: (container) => {
+            container.querySelector('#scroll-pass-btn').onclick = () => passLevel();
+        }
+    },
+    // ===== LEVEL 26: Double Tap =====
+    {
+        time: 10,
+        render: () => `
+            <div class="question">Tap this button <u>twice</u></div>
+            <div style="position:relative; height:250px;">
+                <button id="dbl-btn" class="btn btn-primary" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:auto; padding:1.5rem 3rem; font-size:1.5rem;">TAP ME</button>
+            </div>
+        `,
+        init: (container) => {
+            const btn = container.querySelector('#dbl-btn');
+            let taps = 0;
+
+            btn.onclick = () => {
+                taps++;
+                if (taps === 1) {
+                    btn.textContent = "TAP AGAIN!";
+                    btn.style.left = Math.random() * 60 + 10 + '%';
+                    btn.style.top = Math.random() * 60 + 10 + '%';
+                    btn.style.transform = 'translate(-50%,-50%) rotate(' + (Math.random() * 40 - 20) + 'deg)';
+                } else if (taps === 2) {
+                    passLevel();
+                }
+            };
+        }
+    },
+    // ===== LEVEL 27: Letter Count Wordplay =====
+    {
+        time: 10,
+        render: () => `
+            <div class="question">How many letters in "<span style="color:var(--primary);">ELEVEN</span>"?</div>
+            <div class="options-grid">
+                <button class="option-btn" data-val="6">6</button>
+                <button class="option-btn" data-val="11">11</button>
+                <button class="option-btn" data-val="5">5</button>
+                <button class="option-btn" data-val="7">7</button>
+            </div>
+        `,
+        init: (container) => {
+            container.querySelectorAll('.option-btn').forEach(btn => {
+                btn.onclick = () => {
+                    if (btn.dataset.val === '6') passLevel();
+                    else failLevel();
+                };
+            });
+        }
+    },
+    // ===== LEVEL 28: Fake Loading — Find the Real Button =====
+    {
+        time: 15,
+        render: () => `
+            <div class="question" id="load-q">Please wait, loading...</div>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; margin-top:3rem; position:relative;">
+                <div id="fake-spinner" class="loader" style="width:80px; height:80px; border-width:8px;"></div>
+                <div id="real-btn-wrap" style="position:absolute; bottom:-80px; opacity:0; transition: opacity 0.3s;">
+                    <button id="real-load-btn" style="background:none; border:2px dashed #94a3b8; color:#94a3b8; padding:0.5rem 1rem; border-radius:8px; font-size:0.75rem; cursor:pointer; font-family:'Outfit',sans-serif;">skip loading</button>
+                </div>
+            </div>
+        `,
+        init: (container) => {
+            levels[currentLevelIndex]._to = setTimeout(() => {
+                const wrap = container.querySelector('#real-btn-wrap');
+                if (wrap) wrap.style.opacity = '1';
+            }, 3000);
+
+            levels[currentLevelIndex]._fail_to = setTimeout(() => {
+                failLevel();
+            }, 14000);
+
+            container.querySelector('#real-load-btn').onclick = () => passLevel();
+        },
+        cleanup: () => {
+            clearTimeout(levels[currentLevelIndex]._to);
+            clearTimeout(levels[currentLevelIndex]._fail_to);
+        }
+    },
+    // ===== LEVEL 29: Reverse Order with Shuffling =====
+    {
+        time: 12,
+        render: () => `
+            <div class="question">Tap in <span style="color:var(--danger);">REVERSE</span> order: 4, 3, 2, 1</div>
+            <div class="options-grid" id="rev-grid">
+                <button class="option-btn rev" data-val="1">1</button>
+                <button class="option-btn rev" data-val="2">2</button>
+                <button class="option-btn rev" data-val="3">3</button>
+                <button class="option-btn rev" data-val="4">4</button>
+            </div>
+        `,
+        init: (container) => {
+            let next = 4;
+            const grid = container.querySelector('#rev-grid');
+            container.querySelectorAll('.rev').forEach(btn => {
+                btn.onclick = () => {
+                    const val = parseInt(btn.dataset.val);
+                    if (val === next) {
+                        next--;
+                        btn.style.background = 'var(--success)';
+                        btn.style.color = 'white';
+                        btn.style.pointerEvents = 'none';
+                        if (next < 1) passLevel();
+                        else {
+                            for (let i = grid.children.length; i >= 0; i--) {
+                                grid.appendChild(grid.children[Math.random() * i | 0]);
+                            }
+                        }
+                    } else {
+                        failLevel();
+                    }
+                };
+            });
+        }
+    },
+    // ===== LEVEL 30: Upside Down Level =====
+    {
+        time: 15,
+        render: () => `
+            <div id="flipped-wrapper" style="transform: rotate(180deg); display:flex; flex-direction:column; align-items:center;">
+                <div class="question">Tap "Correct" to win!</div>
+                <div class="options-grid" style="margin-top:1rem;">
+                    <button class="option-btn troll-wrong">Wrong</button>
+                    <button class="option-btn" id="correct-btn">Correct</button>
+                    <button class="option-btn troll-wrong">Nope</button>
+                    <button class="option-btn troll-wrong">Wrong</button>
+                </div>
+                <div style="text-align:center; margin-top:2rem; font-size:0.8rem; color:var(--text-muted); opacity:0.5;">🙃 Everything is upside down...</div>
+            </div>
+        `,
+        init: (container) => {
+            container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
+            container.querySelector('#correct-btn').onclick = () => passLevel();
+        }
     }
 ];
 
@@ -771,4 +1097,4 @@ document.getElementById('share-btn').addEventListener('click', () => {
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
 });
 
-updateBestLevel();
+showUserStats();
