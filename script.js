@@ -83,6 +83,24 @@ function showUserStats() {
         UI.welcomeBack.style.display = 'block';
         if (UI.totalAttempts) UI.totalAttempts.textContent = data.totalAttempts;
         if (UI.lastPlayed) UI.lastPlayed.textContent = formatLastPlayed(data.lastPlayed);
+
+        // Continue button logic
+        const savedProgress = parseInt(localStorage.getItem('aystti_progress'));
+        if (!isNaN(savedProgress) && savedProgress > 0) {
+            let continueBtn = document.getElementById('continue-btn');
+            if (!continueBtn) {
+                continueBtn = document.createElement('button');
+                continueBtn.id = 'continue-btn';
+                continueBtn.className = 'btn btn-secondary';
+                continueBtn.style.marginTop = '1rem';
+                UI.welcomeBack.appendChild(continueBtn);
+            }
+            continueBtn.textContent = 'Continue from Level ' + (savedProgress + 1);
+            continueBtn.onclick = () => {
+                showScreen('game');
+                loadLevel(savedProgress);
+            };
+        }
     }
 }
 
@@ -144,6 +162,7 @@ function passLevel() {
     if (!isLevelActive) return;
     isLevelActive = false;
     clearInterval(timer);
+    clearTimeout(levels[currentLevelIndex]._hintTimeout);
 
     if (levels[currentLevelIndex].cleanup) {
         levels[currentLevelIndex].cleanup();
@@ -153,6 +172,7 @@ function passLevel() {
     if (currentLevelIndex >= levels.length) {
         setBestLevel(currentLevelIndex + 1);
         trackAttempt(currentLevelIndex + 1);
+        localStorage.removeItem('aystti_progress');
         showScreen('end');
         UI.failTitle.textContent = "You Win?!";
         UI.failTitle.style.color = "var(--success)";
@@ -181,6 +201,7 @@ function failLevel() {
     if (!isLevelActive) return;
     isLevelActive = false;
     clearInterval(timer);
+    clearTimeout(levels[currentLevelIndex]._hintTimeout);
 
     if (levels[currentLevelIndex].cleanup) {
         levels[currentLevelIndex].cleanup();
@@ -209,6 +230,7 @@ function failLevel() {
 const levels = [
     {
         time: 12,
+        hint: "It's running away! Catch it!",
         render: () => `
             <div class="question">What is 2 + 2?</div>
             <div class="options-grid" style="position: relative; height: 300px; display: block;">
@@ -217,6 +239,7 @@ const levels = [
                 <button class="option-btn troll-wrong" style="display:inline-block; width: 45%; margin: 5px;">5</button>
                 <button id="correct-btn" class="option-btn drift-anim" style="position: absolute; width: 45%; margin: 5px; z-index: 5;">4</button>
             </div>
+            <div id="rage-txt" style="position:absolute; bottom:10px; right:10px; font-size:0.7rem; color:var(--danger); opacity:0; transition:opacity 0.3s;">Too slow? 🤡</div>
         `,
         init: (container) => {
             container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
@@ -224,7 +247,7 @@ const levels = [
             correctBtn.onclick = () => passLevel();
 
             let x = 0; let y = 0;
-            let vx = 3.5; let vy = 2.5; // pixel speed per frame
+            let vx = 3.5; let vy = 2.5;
 
             levels[currentLevelIndex]._animFrame = requestAnimationFrame(function animate() {
                 if (!isLevelActive) return;
@@ -239,15 +262,18 @@ const levels = [
                 y = Math.max(0, Math.min(y, maxY));
 
                 correctBtn.style.transform = `translate(${x}px, ${y}px)`;
+
+                // Ragebait: show message after 5 seconds
+                if (timeLeft < 7) container.querySelector('#rage-txt').style.opacity = '0.4';
+
                 levels[currentLevelIndex]._animFrame = requestAnimationFrame(animate);
             });
         },
-        cleanup: () => {
-            cancelAnimationFrame(levels[currentLevelIndex]._animFrame);
-        }
+        cleanup: () => cancelAnimationFrame(levels[currentLevelIndex]._animFrame)
     },
     {
         time: 10,
+        hint: "Don't look for digits...",
         render: () => `
             <div class="question" style="margin-bottom: 5px;">Select the smallest number</div>
             <div class="sub-text">written in words</div>
@@ -265,12 +291,14 @@ const levels = [
     },
     {
         time: 10,
+        hint: "The red button is a trap.",
         render: () => `
             <div class="question">Tap the correct button to proceed.</div>
             <button class="huge-danger-btn">CORRECT</button>
             <div style="text-align: right; margin-top: 2rem; padding-right: 1rem;">
                 <div id="real-correct" class="secret-dot"></div>
             </div>
+            <div style="position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); pointer-events:none; opacity:0.1; font-size:5rem; font-weight:900;">DUMB?</div>
         `,
         init: (container) => {
             container.querySelector('.huge-danger-btn').onclick = () => failLevel();
@@ -279,17 +307,26 @@ const levels = [
     },
     {
         time: 6,
+        hint: "Ignore the text, just wait...",
         render: () => `
             <div class="question" id="q-text">You have 6 seconds to tap this button.</div>
             <button id="correct-btn" class="btn btn-primary" style="margin-top:2rem;">Tap Me</button>
         `,
         init: (container) => {
-            container.querySelector('#correct-btn').onclick = () => passLevel();
+            // Ragebait: The button moves when you try to click it!
+            const btn = container.querySelector('#correct-btn');
+            btn.onmouseover = () => {
+                if (Math.random() < 0.3) {
+                    btn.style.transform = `translate(${Math.random() * 40 - 20}px, ${Math.random() * 40 - 20}px)`;
+                }
+            };
+            btn.onclick = () => passLevel();
             levels[currentLevelIndex]._customTick = (t) => {
                 if (t === 4) {
                     setTimeLeftOverride(1);
                     container.querySelector('#q-text').textContent = "HURRY!";
-                    container.style.transform = 'scale(1.05)';
+                    container.querySelector('#q-text').style.color = "var(--danger)";
+                    container.style.transform = 'scale(1.1)';
                     setTimeout(() => container.style.transform = 'none', 150);
                 }
             };
@@ -300,6 +337,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Read the instruction carefully.",
         render: () => `
             <div class="question">Select the <u style="color:var(--danger)">wrong</u> answer.</div>
             <div class="options-grid">
@@ -316,6 +354,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Don't chase the icon, watch the squares.",
         render: () => `
             <div class="question">Find and tap the Square</div>
             <div class="options-grid shape-grid" style="gap: 1.5rem;">
@@ -355,9 +394,11 @@ const levels = [
     },
     {
         time: 7,
+        hint: "Hands off! Just let it tick down.",
         render: () => `
             <div class="question">Don't tap anything.</div>
             <button class="huge-danger-btn" style="background:var(--danger); animation: pulse-danger 0.8s infinite alternate;">TAP ME!</button>
+            <div id="rage-msg" style="margin-top:2rem; font-weight:800; opacity:0; transition:opacity 0.3s; color:var(--primary);">You're really tempted, aren't you?</div>
         `,
         init: (container) => {
             levels[currentLevelIndex]._handler = (e) => {
@@ -371,6 +412,8 @@ const levels = [
             }, 200);
 
             levels[currentLevelIndex]._customTick = (t) => {
+                if (t === 4) container.querySelector('#rage-msg').style.opacity = '0.5';
+                if (t === 2) container.querySelector('#rage-msg').textContent = "Almost there... don't be a 🤡";
                 if (t === 0) {
                     passLevel();
                 }
@@ -383,12 +426,13 @@ const levels = [
     },
     {
         time: 10,
+        hint: "That progress bar is a lie.",
         render: () => `
             <div class="question">Loading next level...</div>
             <div style="width:100%; height:24px; background:#e2e8f0; border-radius:12px; overflow:hidden; position:relative; margin-top: 2rem;">
-                <div id="progress-bar-lvl8" style="width:0%; height:100%; background:var(--primary); transition:width 5s linear;"></div>
+                <div id="progress-bar-lvl8" style="width:0%; height:100%; background:var(--primary); transition:width 10s linear;"></div>
             </div>
-            <div id="skip-btn" style="color:var(--text-muted); font-size:0.8rem; font-weight:700; cursor:pointer; margin-top:1rem; text-align:right; opacity:0.2; padding:0.5rem;">Skip</div>
+            <div id="skip-btn" style="color:var(--text-muted); font-size:0.8rem; font-weight:700; cursor:pointer; margin-top:1rem; text-align:right; border:1px solid #cbd5e1; padding:0.5rem 1rem; border-radius:8px; display:inline-block; align-self:flex-end;">Skip</div>
         `,
         init: (container) => {
             setTimeout(() => {
@@ -414,6 +458,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "The word is the key.",
         render: () => `
             <div class="question">Tap the <span id="target-word" style="cursor:pointer; position:relative; z-index:10; border-bottom: 2px dashed #cbd5e1;">target</span> below</div>
             <div class="options-grid" style="margin-top: 2rem;">
@@ -430,6 +475,7 @@ const levels = [
     },
     {
         time: 15,
+        hint: "Don't fall for the simple 'Yes'.",
         render: () => `
             <div class="question">Are you ready to win?</div>
             <button id="correct-btn" class="btn btn-primary" style="margin-bottom: 1rem;">Yes</button>
@@ -493,6 +539,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Don't rush, hold it steady.",
         render: () => `
             <div class="question">Hold the button for 3 seconds</div>
             <button id="hold-btn" class="huge-danger-btn" style="background:var(--primary);">HOLD</button>
@@ -530,6 +577,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Are you *sure* it's yellow?",
         render: () => `
             <div class="question" id="q-txt">What color is a banana?</div>
             <div class="options-grid" id="opt-container">
@@ -560,6 +608,7 @@ const levels = [
     },
     {
         time: 12,
+        hint: "Look at the question, not the shapes.",
         render: () => `
             <div class="question" id="mem-q">Memorize the middle shape</div>
             <div class="options-grid shape-grid" style="gap: 1rem; display:flex; justify-content:center;" id="mem-show">
@@ -594,6 +643,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Owls come out in the dark.",
         render: () => `
             <div class="question" id="dark-q">It's too bright in here.</div>
             <button class="huge-danger-btn" style="background:#fefce8; color:#0f172a;" id="light-switch">Turn off lights</button>
@@ -623,6 +673,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Size is relative to the text.",
         render: () => `
             <div class="question">Tap the biggest <span id="word-circle" style="cursor:pointer; position:relative; z-index:10; display:inline-block; padding:5px;">circle</span></div>
             <div style="display:flex; justify-content:center; align-items:flex-end; gap:10px; height:200px;">
@@ -638,6 +689,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Sync your thumb with the tenth.",
         render: () => `
             <div class="question">Stop the timer at 5.0</div>
             <div id="stopwatch" style="font-size:4rem; font-weight:900; text-align:center; margin:2rem 0; font-variant-numeric: tabular-nums;">10.0</div>
@@ -665,6 +717,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "The buttons are mixed up.",
         render: () => `
             <div class="question">Type 100</div>
             <div id="display" style="background:#e2e8f0; padding:1rem; font-size:2rem; text-align:right; border-radius:12px; margin-bottom:1rem; height:4rem; font-weight:800;"></div>
@@ -703,6 +756,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "Find the letter, not the value.",
         render: () => `
             <div class="question">Find the letter <span id="real-x" style="cursor:pointer;position:relative;z-index:10;padding:5px;">X</span></div>
             <div style="font-size:3rem; font-weight:900; text-align:center; margin:2rem 0;">2x = 8</div>
@@ -720,6 +774,7 @@ const levels = [
     },
     {
         time: 10,
+        hint: "They keep moving! Be fast.",
         render: () => `
             <div class="question">Tap in order: 1, 2, 3, 4</div>
             <div class="options-grid" id="seq-grid">
@@ -754,6 +809,7 @@ const levels = [
     },
     {
         time: 15,
+        hint: "The text at the bottom looks like a label...",
         render: () => `
             <div class="question">What was the answer to Level 1?</div>
             <div class="options-grid">
@@ -772,6 +828,7 @@ const levels = [
     // ===== LEVEL 21: Color Swap Buttons =====
     {
         time: 10,
+        hint: "Patience... only tap when it's green.",
         render: () => `
             <div class="question">Tap the <span style="color:var(--success);font-weight:900;">GREEN</span> button</div>
             <div class="options-grid" id="color-grid">
@@ -813,6 +870,7 @@ const levels = [
     // ===== LEVEL 22: Steel vs Feathers =====
     {
         time: 12,
+        hint: "Physics 101: Mass is independent of volume.",
         render: () => `
             <div class="question">Which is heavier: 1kg of steel or 1kg of feathers?</div>
             <div class="options-grid">
@@ -831,6 +889,7 @@ const levels = [
     // ===== LEVEL 23: Mirror Level =====
     {
         time: 12,
+        hint: "Tap the button labeled 'Right', regardless of position.",
         render: () => `
             <div class="question" style="transform: scaleX(-1);">Tap the "Right" button</div>
             <div class="options-grid" style="transform: scaleX(-1);">
@@ -849,6 +908,7 @@ const levels = [
     // ===== LEVEL 24: Fleeing Answer (harder version of Level 1) =====
     {
         time: 12,
+        hint: "Like a mosquito... tap where it just *was*.",
         render: () => `
             <div class="question">Solve: 5 + 3 = ?</div>
             <div class="options-grid" style="position: relative; height: 300px; display: block;">
@@ -886,6 +946,7 @@ const levels = [
     // ===== LEVEL 25: Don't Scroll Down =====
     {
         time: 12,
+        hint: "Curiosity didn't kill the cat this time.",
         render: () => `
             <div class="question">⚠️ Do NOT scroll down!</div>
             <div id="scroll-trap" style="max-height:200px; overflow-y:auto; border:2px solid #e2e8f0; border-radius:16px; padding:1rem; margin-top:1rem;">
@@ -905,6 +966,7 @@ const levels = [
     // ===== LEVEL 26: Double Tap =====
     {
         time: 10,
+        hint: "One, then find it again for two.",
         render: () => `
             <div class="question">Tap this button <u>twice</u></div>
             <div style="position:relative; height:250px;">
@@ -931,6 +993,7 @@ const levels = [
     // ===== LEVEL 27: Letter Count Wordplay =====
     {
         time: 10,
+        hint: "E-L-E-V-E-N... count them.",
         render: () => `
             <div class="question">How many letters in "<span style="color:var(--primary);">ELEVEN</span>"?</div>
             <div class="options-grid">
@@ -952,6 +1015,7 @@ const levels = [
     // ===== LEVEL 28: Fake Loading — Find the Real Button =====
     {
         time: 15,
+        hint: "Loading... loading... oh wait, there's a skip button.",
         render: () => `
             <div class="question" id="load-q">Please wait, loading...</div>
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; margin-top:3rem; position:relative;">
@@ -981,6 +1045,7 @@ const levels = [
     // ===== LEVEL 29: Reverse Order with Shuffling =====
     {
         time: 12,
+        hint: "4, 3, 2, 1. Don't look at the positions, look at the numbers.",
         render: () => `
             <div class="question">Tap in <span style="color:var(--danger);">REVERSE</span> order: 4, 3, 2, 1</div>
             <div class="options-grid" id="rev-grid">
@@ -1017,6 +1082,7 @@ const levels = [
     // ===== LEVEL 30: Upside Down Level =====
     {
         time: 15,
+        hint: "Flip your phone... or just your brain.",
         render: () => `
             <div id="flipped-wrapper" style="transform: rotate(180deg); display:flex; flex-direction:column; align-items:center;">
                 <div class="question">Tap "Correct" to win!</div>
@@ -1043,10 +1109,25 @@ function loadLevel(index) {
     isLevelActive = true;
     const levelData = levels[index];
 
+    // Save progress so user can continue later
+    localStorage.setItem('aystti_progress', index);
+
     UI.levelIndicator.textContent = 'Level ' + (index + 1);
     UI.levelContainer.innerHTML = levelData.render();
 
     levelData.init(UI.levelContainer);
+
+    // Show hint after ~60% of the level time
+    if (levelData.hint) {
+        const hintDelay = Math.floor(levelData.time * 0.6) * 1000;
+        levels[index]._hintTimeout = setTimeout(() => {
+            if (!isLevelActive) return;
+            const hintEl = document.createElement('div');
+            hintEl.className = 'level-hint';
+            hintEl.innerHTML = '💡 ' + levelData.hint;
+            UI.levelContainer.appendChild(hintEl);
+        }, hintDelay);
+    }
 
     startTimer(levelData.time, (t) => {
         if (levelData._customTick) {
