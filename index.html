@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Are You Smarter Than The Internet?</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="animated-bg"></div>
+
+    <div id="app">
+        <!-- Landing Screen -->
+        <div id="landing-screen" class="screen active">
+            <div class="logo-container">IQ</div>
+            <h1>Are You Smarter Than The Internet?</h1>
+            <p class="subtitle">A slightly frustrating, highly addicting test of your wits.</p>
+            <div class="stats-card">
+                <div class="stat-row">
+                    <span class="stat-label">Global Success Rate</span>
+                    <span class="stat-value">3.2%</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-row">
+                    <span class="stat-label">Your Best Level</span>
+                    <span class="stat-value highlight" id="best-level">1</span>
+                </div>
+            </div>
+            <button id="start-btn" class="btn btn-primary">Start The Test</button>
+            <div class="banner-ad" style="margin-top: auto; padding-top: 2rem;">
+                <div class="ad-placeholder">Advertisement</div>
+            </div>
+            <!-- Privacy Placeholder for GDPR/CCPA Compliance -->
+            <div
+                style="font-size: 0.75rem; color: var(--text-muted); opacity: 0.6; margin-top: 1.5rem; text-align: center;">
+                By playing, you agree to our <a href="privacy.html" style="color: var(--primary);">Privacy Policy</a>
+                and use of
+                cookies for personalized ads.
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="level-badge" id="level-indicator">Level 1</div>
+                <div class="timer-container">
+                    <div class="timer-text"><span id="time-left">10</span>s</div>
+                    <div class="timer-track">
+                        <div id="time-bar" class="timer-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="level-container">
+                <!-- Dynamic level content injected here -->
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen">
+            <div class="icon-pulse" id="fail-icon">❌</div>
+            <h1 id="fail-title">You Failed!</h1>
+            <p class="fail-subtitle">You made it to <strong id="reached-level">Level X</strong>.</p>
+
+            <div class="stats-card" style="margin-top: 1rem; width: 100%;">
+                <p style="margin: 0;">Only <strong id="global-stat" style="color: var(--primary);">Y</strong>% of
+                    players reach this far.</p>
+            </div>
+
+            <div class="action-buttons">
+                <button id="retry-ad-btn" class="btn btn-success" style="margin-bottom: 1rem;">
+                    ▶️ Watch Ad to Retry Level <span id="current-fail-level"></span>
+                </button>
+                <div style="display: flex; gap: 1rem;">
+                    <button id="retry-btn" class="btn btn-primary">Retry from Level 1</button>
+                    <button id="share-btn" class="btn btn-secondary" style="margin-top: 0;">Share Score</button>
+                </div>
+            </div>
+            <div class="banner-ad" style="margin-top: 2rem;">
+                <div class="ad-placeholder">Advertisement</div>
+            </div>
+        </div>
+
+        <!-- Fake Ad Screen overlay -->
+        <div id="ad-screen" class="screen" style="z-index: 100; background: black; color: white;">
+            <div style="text-align:right; padding: 1rem;"><span id="ad-timer">5</span></div>
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <h2>SPONSORED AD</h2>
+                <p style="margin: 1rem 0; opacity: 0.7;">Loading Advertisement...</p>
+                <div class="loader"></div>
+            </div>
+            <button id="close-ad-btn" class="btn btn-secondary" style="display:none; color:black;">Close Ad &
+                Continue</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
