@@ -588,21 +588,17 @@ const levels = [
             </div>
         `,
         init: (container) => {
-            let state = 0;
             container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
             container.querySelector('#correct-btn').onclick = function () {
-                if (state === 0) {
-                    state = 1;
-                    container.querySelector('#q-txt').textContent = "Are you absolutely sure?";
-                    const grid = container.querySelector('#opt-container');
-                    grid.innerHTML = `
-                        <button class="option-btn troll-wrong">Yes</button>
-                        <button class="option-btn" id="real-yes">No, wait...</button>
-                    `;
-                    grid.style.gridTemplateColumns = "1fr 1fr";
-                    grid.querySelector('.troll-wrong').onclick = () => failLevel();
-                    grid.querySelector('#real-yes').onclick = () => passLevel();
-                }
+                const q = container.querySelector('#q-txt');
+                const grid = container.querySelector('#opt-container');
+                q.textContent = "Are you absolutely sure?";
+                grid.innerHTML = `
+                    <button class="option-btn" id="real-yes" style="grid-column: span 2; background:var(--success); color:white;">YES, ABSOLUTELY!</button>
+                    <button class="option-btn troll-wrong" style="grid-column: span 2; opacity:0.5;">Wait, let me think...</button>
+                `;
+                grid.querySelector('.troll-wrong').onclick = () => failLevel();
+                grid.querySelector('#real-yes').onclick = () => passLevel();
             };
         }
     },
@@ -624,20 +620,19 @@ const levels = [
         `,
         init: (container) => {
             levels[currentLevelIndex]._to = setTimeout(() => {
-                container.querySelector('#mem-q').textContent = "Which one was in the middle?";
+                const questionEl = container.querySelector('#mem-q');
+                questionEl.innerHTML = 'Which one was in the <span id="mid-word" style="border-bottom:2px dashed #94a3b8;cursor:pointer;position:relative;z-index:20;padding:0 5px;">middle</span>?';
                 container.querySelector('#mem-show').style.display = 'none';
                 container.querySelector('#mem-ans').style.display = 'grid';
+
+                // Add click handler to the word after it's injected
+                container.querySelector('#mid-word').onclick = () => passLevel();
             }, 3000);
 
             container.querySelectorAll('.troll-wrong').forEach(btn => btn.onclick = () => failLevel());
             container.querySelector('#correct-btn').onclick = () => {
-                failLevel();
+                failLevel(); // The joke: clicking the actual shape fails you
             };
-            container.querySelector('#mem-q').innerHTML = 'Which one was in the <span id="mid-word" style="border-bottom:2px dashed #94a3b8;cursor:pointer;">middle</span>?';
-            setTimeout(() => {
-                const mid = container.querySelector('#mid-word');
-                if (mid) mid.onclick = () => passLevel();
-            }, 3010);
         },
         cleanup: () => clearTimeout(levels[currentLevelIndex]._to)
     },
@@ -1157,6 +1152,27 @@ document.getElementById('retry-btn').addEventListener('click', () => {
         loadLevel(0);
     }
 });
+
+function showAdScreen(onComplete) {
+    // Mock ad screen for development
+    const adScreen = document.createElement('div');
+    adScreen.className = 'screen active';
+    adScreen.style.zIndex = '1000';
+    adScreen.style.background = '#000';
+    adScreen.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:white; text-align:center; padding:2rem;">
+            <h2>Watching Ad...</h2>
+            <div class="loader" style="margin:2rem 0; border-color:white; border-bottom-color:var(--primary);"></div>
+            <p style="opacity:0.7;">Reward: Restart Level</p>
+        </div>
+    `;
+    document.getElementById('app').appendChild(adScreen);
+
+    setTimeout(() => {
+        adScreen.remove();
+        if (onComplete) onComplete();
+    }, 2000);
+}
 
 // --- MONETIZATION POLICY NOTE ---
 // To comply with Google AdSense and other ad network policies:
