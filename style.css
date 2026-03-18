@@ -471,6 +471,36 @@ ins.adsbygoogle {
     width: 100%;
 }
 
+/* Content Section for AdSense */
+.content-section {
+    padding-bottom: 3rem;
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+.content-section h2 {
+    font-size: 1.5rem;
+    margin: 1.5rem 0 1rem;
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.content-section h3 {
+    font-size: 1.1rem;
+    margin: 1.2rem 0 0.5rem;
+    font-weight: 700;
+}
+
+.content-section p {
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+.content-section b {
+    color: var(--text-main);
+}
+
 @keyframes hintFadeIn {
     from {
         opacity: 0;
