@@ -31,6 +31,19 @@ let isLevelActive = false;
 let normalRetryCount = localStorage.getItem('aystti_retries') ? parseInt(localStorage.getItem('aystti_retries')) : 0;
 let pendingAdAction = null;
 
+const funFacts = [
+    "A hummingbird weighs less than a penny.",
+    "Octopuses have three hearts.",
+    "Bananas are berries, but strawberries aren't.",
+    "A day on Venus is longer than a year on Venus.",
+    "The first orange was actually green.",
+    "Wombat poop is cube-shaped.",
+    "Honey never spoils; archaeologists found 3000-year-old honey in Egyptian tombs.",
+    "The Eiffel Tower can be 15 cm taller during the summer.",
+    "A group of flamingos is called a 'flamboyance'.",
+    "Scotland has 421 words for 'snow'."
+];
+
 // ===== USER DATA PERSISTENCE =====
 function loadUserData() {
     try {
@@ -224,6 +237,12 @@ function failLevel() {
         if (currentLevelIndex === levels.length - 1) dropoff = 3;
         UI.globalStat.textContent = Math.round(dropoff);
         UI.levelContainer.style.pointerEvents = 'all';
+        
+        // Dynamic Fun Fact for AdSense "Value" requirement
+        const factText = document.getElementById('fun-fact-text');
+        if (factText) {
+            factText.textContent = funFacts[Math.floor(Math.random() * funFacts.length)];
+        }
     }, 400);
 }
 

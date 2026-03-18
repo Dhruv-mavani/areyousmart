@@ -4,8 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="A slightly frustrating, highly addicting test of your wits and IQ. Are You Smarter Than The Internet? Challenge yourself with tricky levels and puzzles.">
+    <meta name="keywords" content="IQ test, brain game, tricky puzzles, logic game, online game, are you smart">
+    <meta property="og:title" content="Are You Smarter Than The Internet?">
+    <meta property="og:description" content="Test your wits with this highly addicting and slightly frustrating brain game.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Are You Smarter Than The Internet?</title>
+    <title>Are You Smarter Than The Internet? | Ultimate IQ Challenge</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5192186837555576"
@@ -49,12 +55,28 @@
                 </div>
             </div>
             <button id="start-btn" class="btn btn-primary">Start The Test</button>
+            
+            <div class="content-section" style="margin-top: 3rem; text-align: left;">
+                <h2>About This Challenge</h2>
+                <p>Welcome to "Are You Smarter Than The Internet?", a uniquely designed IQ test that challenges your conventional thinking. Most online tests are straightforward, but this one is built to subvert your expectations. It's not just about what you know; it's about how you perceive the world around you.</p>
+                
+                <h3>How to Play</h3>
+                <p>Each level presented in this test has a logic of its own. Some require quick reflexes, others require careful reading of the instructions, and a few might even require you to do absolutely nothing. Your goal is to reach Level 20 without failing. If you fail, you start from the beginning—unless you choose to continue with a sponsored retry.</p>
+
+                <h3>Tips for Success</h3>
+                <p>1. <b>Read carefully:</b> The most obvious answer is often a trap. Look for hidden buttons or double meanings in the text.<br>
+                2. <b>Be patient:</b> Some levels count down, while others wait for your action. Don't rush unless the timer tells you to.<br>
+                3. <b>Think outside the box:</b> If a button isn't working, maybe the solution isn't a button at all.</p>
+            </div>
+
             <!-- Landing Screen Banner -->
-            <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5192186837555576"
-                data-ad-slot="6813744066" data-ad-format="auto" data-full-width-responsive="true"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
+            <div style="margin: 2rem 0; min-height: 100px;">
+                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5192186837555576"
+                    data-ad-slot="6813744066" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
             <!-- Privacy Placeholder for GDPR/CCPA Compliance -->
             <div
                 style="font-size: 0.75rem; color: var(--text-muted); opacity: 0.6; margin-top: 1.5rem; text-align: center;">
@@ -101,6 +123,12 @@
                     <button id="share-btn" class="btn btn-secondary" style="margin-top: 0;">Share Score</button>
                 </div>
             </div>
+
+            <div id="fun-fact-container" class="stats-card" style="margin-top: 2rem; border-color: var(--secondary);">
+                <p style="font-size: 0.9rem; margin: 0; opacity: 0.8;"><strong>💡 Did you know?</strong></p>
+                <p id="fun-fact-text" style="font-size: 1rem; margin-top: 0.5rem;"></p>
+            </div>
+
             <!-- End Screen Banner -->
             <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5192186837555576"
                 data-ad-slot="6813744066" data-ad-format="auto" data-full-width-responsive="true"></ins>
