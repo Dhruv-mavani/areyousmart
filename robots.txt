@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://areyousmart.fun/sitemap.xml
+Sitemap: https://areyousmarterthaninternet.vercel.app/sitemap.xml
